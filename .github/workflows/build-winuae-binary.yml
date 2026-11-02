@@ -23,9 +23,12 @@ jobs:
       shell: powershell
       run: |
         $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
-        $p = Start-Process -FilePath "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--installPath","`"$vs`"","--add","Microsoft.VisualStudio.Component.VC.ATL","--quiet","--norestart","--nocache" -Wait -PassThru
-        Write-Host "vs_installer exit $($p.ExitCode)"
-        Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse -Filter atlcomcli.h | Select-Object -First 1 FullName
+        # v143 toolset (MSVC 14.44) needs its own ATL component; try each ID separately
+        foreach ($c in @("Microsoft.VisualStudio.Component.VC.ATL","Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL","Microsoft.VisualStudio.Component.VC.v143.ATL")) {
+          $p = Start-Process -FilePath "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--installPath","`"$vs`"","--add",$c,"--quiet","--norestart","--nocache" -Wait -PassThru
+          Write-Host "vs_installer $c exit $($p.ExitCode)"
+        }
+        Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse -Filter atlcomcli.h | ForEach-Object { $_.FullName }
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2.0.0
@@ -78,9 +81,12 @@ jobs:
       shell: powershell
       run: |
         $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
-        $p = Start-Process -FilePath "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--installPath","`"$vs`"","--add","Microsoft.VisualStudio.Component.VC.ATL","--quiet","--norestart","--nocache" -Wait -PassThru
-        Write-Host "vs_installer exit $($p.ExitCode)"
-        Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse -Filter atlcomcli.h | Select-Object -First 1 FullName
+        # v143 toolset (MSVC 14.44) needs its own ATL component; try each ID separately
+        foreach ($c in @("Microsoft.VisualStudio.Component.VC.ATL","Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL","Microsoft.VisualStudio.Component.VC.v143.ATL")) {
+          $p = Start-Process -FilePath "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--installPath","`"$vs`"","--add",$c,"--quiet","--norestart","--nocache" -Wait -PassThru
+          Write-Host "vs_installer $c exit $($p.ExitCode)"
+        }
+        Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse -Filter atlcomcli.h | ForEach-Object { $_.FullName }
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2.0.0
