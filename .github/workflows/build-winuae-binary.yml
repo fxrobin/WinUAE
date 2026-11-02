@@ -19,6 +19,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install ATL component (atlcomcli.h)
+      shell: powershell
+      run: |
+        $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+        $p = Start-Process -FilePath "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--installPath","`"$vs`"","--add","Microsoft.VisualStudio.Component.VC.ATL","--quiet","--norestart","--nocache" -Wait -PassThru
+        Write-Host "vs_installer exit $($p.ExitCode)"
+        Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse -Filter atlcomcli.h | Select-Object -First 1 FullName
+
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2.0.0
 
@@ -65,6 +73,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install ATL component (atlcomcli.h)
+      shell: powershell
+      run: |
+        $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+        $p = Start-Process -FilePath "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--installPath","`"$vs`"","--add","Microsoft.VisualStudio.Component.VC.ATL","--quiet","--norestart","--nocache" -Wait -PassThru
+        Write-Host "vs_installer exit $($p.ExitCode)"
+        Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse -Filter atlcomcli.h | Select-Object -First 1 FullName
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2.0.0
