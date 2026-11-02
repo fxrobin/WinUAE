@@ -641,6 +641,41 @@ namespace barto_gdbserver {
 										savestate_quick(0, 0); // restore state saved at process entry
 										barto_debug_resources_count = 0;
 										response += "OK";
+									} else if(cmd.substr(0, strlen("screenshot ")) == "screenshot ") {
+										// syntax: monitor screenshot <out_file.png>
+										// writes the last rendered frame as PNG; reply = hex("OK <w>x<h> <file>")
+										auto outname = cmd.substr(strlen("screenshot "));
+										if(outname.size() >= 2 && outname.front() == '\"' && outname.back() == '\"')
+											outname = outname.substr(1, outname.size() - 2);
+										int monid = getfocusedmonitor();
+										vidbuf_description* avidinfo = &adisplays[monid].gfxvidinfo;
+										vidbuffer* vb = &avidinfo->drawbuffer;
+										bool ok = false;
+										int w = 0, h = 0;
+										if(!outname.empty() && screenshot_prepare(monid, vb) == 1) {
+											auto bi = screenshot_get_bi();
+											auto bi_bits = (const uint8_t*)screenshot_get_bits();
+											if(bi && bi_bits && bi->bmiHeader.biBitCount == 24 && bi->bmiHeader.biHeight != 0) {
+												// bottom-up BGR DIB -> top-down RGB
+												w = bi->bmiHeader.biWidth;
+												h = abs(bi->bmiHeader.biHeight);
+												const auto pitch = bi->bmiHeader.biSizeImage / h;
+												auto bits = std::make_unique<uint8_t[]>(w * 3 * h);
+												for(int y = 0; y < h; y++) {
+													const uint8_t* src = bi_bits + (bi->bmiHeader.biHeight > 0 ? (h - 1 - y) : y) * pitch;
+													for(int x = 0; x < w; x++) {
+														bits[y * w * 3 + x * 3 + 0] = src[x * 3 + 2];
+														bits[y * w * 3 + x * 3 + 1] = src[x * 3 + 1];
+														bits[y * w * 3 + x * 3 + 2] = src[x * 3 + 0];
+													}
+												}
+												ok = stbi_write_png(outname.c_str(), w, h, 3, bits.get(), w * 3) != 0;
+											}
+										}
+										if(ok)
+											response += to_hex("OK " + std::to_string(w) + "x" + std::to_string(h) + " " + outname);
+										else
+											response += "E02";
 									} else {
 										// unknown monitor command
 										response += "E01";
